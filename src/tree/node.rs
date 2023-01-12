@@ -1,5 +1,5 @@
 use core::fmt;
-use super::Node;
+use super::{Token,Error,Node};
 
 impl Default for Node {
     fn default() -> Self {
@@ -15,4 +15,8 @@ impl fmt::Display for Node {
             }
         }
     }
+}
+
+pub fn build(tokens:&Vec<Token>, errors:&mut Vec<Error>) -> Node {
+    Node::Empty
 }

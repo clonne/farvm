@@ -1,5 +1,5 @@
 use core::fmt;
-use super::{TokenLoc,TokenValue,Token};
+use super::{TokenLoc,TokenValue,Token,Error};
 
 impl fmt::Display for TokenLoc {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -24,32 +24,33 @@ impl fmt::Display for TokenValue {
             TokenValue::ConstString(a) => {
                 write!(f, "(String \"{}\")", a)
             }
-            TokenValue::ConstBool(a) => {
-                write!(f, "(Bool {})", a)
-            }
             TokenValue::Id(a) => {
                 write!(f, "(Id {})", a)
             }
             //
-            TokenValue::LP0 => {write!(f, "( LP0")}
-            TokenValue::RP0 => {write!(f, ") RP0")}
-            TokenValue::LP1 => {write!(f, "[ LP1")}
-            TokenValue::RP1 => {write!(f, "] RP1")}
-            TokenValue::LP2 => {write!(f, "{{ LP2")}
-            TokenValue::RP2 => {write!(f, "}} RP2")}
-            TokenValue::COLON => {write!(f, ":")}
-            TokenValue::COMMA => {write!(f, ",")}
-            TokenValue::DOT => {write!(f, ".")}
+            TokenValue::LP0 => {write!(f, "'(' LP0")}
+            TokenValue::RP0 => {write!(f, "')' RP0")}
+            TokenValue::LP1 => {write!(f, "'[' LP1")}
+            TokenValue::RP1 => {write!(f, "']' RP1")}
+            TokenValue::LP2 => {write!(f, "'{{' LP2")}
+            TokenValue::RP2 => {write!(f, "'}}' RP2")}
+            TokenValue::LP3 => {write!(f, "'<' LP3")}
+            TokenValue::RP3 => {write!(f, "'>' RP3")}
+            TokenValue::COLON => {write!(f, "':' COLON")}
+            TokenValue::COMMA => {write!(f, "',' COMMA")}
+            TokenValue::DOT => {write!(f, "'.' DOT")}
             //
             TokenValue::KeyNil => {write!(f, "nil")}
+            TokenValue::KeyTrue => {write!(f, "true")}
+            TokenValue::KeyFalse => {write!(f, "false")}
             //
-            TokenValue::Eof => {write!(f, "<!EOF!>")}
+            TokenValue::_Eof => {write!(f, "<!EOF!>")}
         }
     }
 }
 impl Default for TokenValue {
     fn default() -> Self {
-        TokenValue::Eof
+        TokenValue::_Eof
     }
 }
 
@@ -65,7 +66,7 @@ pub fn text(tokens:&Vec<Token>) -> String {
     b
 }
 
-pub fn build(code:&String) -> Vec<Token> {
+pub fn build(code:&String, _:&mut Vec<Error>) -> Vec<Token> {
     #[derive(Debug,Default)]
     struct ParseStatus {
         val:TokenValue,
@@ -78,6 +79,8 @@ pub fn build(code:&String) -> Vec<Token> {
         First = 0,
         Id,
         String,
+        Integer,Float,
+        Minus,              // (or <Id> <Number>)
         Comment,
         _Take = 0xFFFE,
         _TakeToFirst,
@@ -88,6 +91,12 @@ pub fn build(code:&String) -> Vec<Token> {
         match a {
             '\0'..=' ' => {
                 P::First as usize
+            }
+            '0' ..='9' => {
+                ps.takes.push(a); ps.loc_unit = ps.loc.clone(); P::Integer as usize
+            }
+            '-' => {
+                ps.takes.push(a); ps.loc_unit = ps.loc.clone(); P::Minus as usize
             }
             '(' => {
                 ps.val = TokenValue::LP0; ps.takes = String::from(a); ps.loc_unit = ps.loc.clone(); P::_TakeToFirst as usize
@@ -106,6 +115,12 @@ pub fn build(code:&String) -> Vec<Token> {
             }
             '}' => {
                 ps.val = TokenValue::RP2; ps.takes = String::from(a); ps.loc_unit = ps.loc.clone(); P::_TakeToFirst as usize
+            }
+            '<' => {
+                ps.val = TokenValue::LP3; ps.takes = String::from(a); ps.loc_unit = ps.loc.clone(); P::_TakeToFirst as usize
+            }
+            '>' => {
+                ps.val = TokenValue::RP3; ps.takes = String::from(a); ps.loc_unit = ps.loc.clone(); P::_TakeToFirst as usize
             }
             ':' => {
                 ps.val = TokenValue::COLON; ps.takes = String::from(a); ps.loc_unit = ps.loc.clone(); P::_TakeToFirst as usize
@@ -130,13 +145,17 @@ pub fn build(code:&String) -> Vec<Token> {
 
     fn p_id(a:char, ps:&mut ParseStatus) -> usize {
         match a {
-            '\0'..=' ' | '(' | ')' | '[' | ']' | '{' | '}' | ':' | ',' | '.' | '"' | '#' => {
-                ps.val = TokenValue::Id(ps.takes.clone());
+            '\0'..=' ' | '(' | ')' | '[' | ']' | '{' | '}' | '<' | '>' | ':' | ',' | '.' | '"' | '#' => {
+                ps.val = match ps.takes.as_str() {
+                    "nil" => {TokenValue::KeyNil}
+                    "true" => {TokenValue::KeyTrue}
+                    "false" => {TokenValue::KeyFalse}
+                    _ => {TokenValue::Id(ps.takes.clone())}
+                };
                 P::_Take as usize
             }
             _ => {
-                ps.takes.push(a);
-                P::Id as usize
+                ps.takes.push(a); P::Id as usize
             }
         }
     }
@@ -144,13 +163,44 @@ pub fn build(code:&String) -> Vec<Token> {
     fn p_string(a:char, ps:&mut ParseStatus) -> usize {
         match a {
             '\0' | '"' => {
-                ps.val = TokenValue::ConstString(ps.takes.clone());
-                P::_TakeToFirst as usize
+                ps.val = TokenValue::ConstString(ps.takes.clone()); P::_TakeToFirst as usize
             }
             _ => {
-                ps.takes.push(a);
-                P::String as usize
+                ps.takes.push(a); P::String as usize
             }
+        }
+    }
+
+    fn p_integer(a:char, ps:&mut ParseStatus) -> usize {
+        match a {
+            '0'..='9' => {
+                ps.takes.push(a); P::Integer as usize
+            }
+            '.' => {
+                ps.takes.push(a); P::Float as usize
+            }
+            _ => {
+                ps.val = TokenValue::ConstInteger(ps.takes.clone()); P::_Take as usize
+            }
+        }
+    }
+
+    fn p_float(a:char, ps:&mut ParseStatus) -> usize {
+        match a {
+            '0'..='9' => {
+                ps.takes.push(a); P::Float as usize
+            }
+            _ => {
+                ps.val = TokenValue::ConstFloat(ps.takes.clone()); P::_Take as usize
+            }
+        }
+    }
+
+    fn p_minus(a:char, ps:&mut ParseStatus) -> usize {
+        ps.takes.push(a);
+        match a {
+            '0'..='9' => {P::Integer as usize}
+            _ => {P::Id as usize}
         }
     }
 
@@ -166,7 +216,7 @@ pub fn build(code:&String) -> Vec<Token> {
     }
 
     let pmaps = [
-        p_first, p_id, p_string, p_comment,
+        p_first, p_id, p_string, p_integer, p_float, p_minus, p_comment,
     ];
 
     let mut tokens:Vec<Token> = vec!();
@@ -191,7 +241,7 @@ pub fn build(code:&String) -> Vec<Token> {
         pcur = pmaps[pcur](a, &mut ps);
         while pcur >= pmaps.len() {
             tokens.push(Token{loc: ps.loc_unit.clone(), val: ps.val});
-            ps.val = TokenValue::Eof;
+            ps.val = TokenValue::_Eof;
             ps.takes.clear();
             if pcur == P::_TakeToFirst as usize {
                 pcur = P::First as usize
@@ -200,6 +250,9 @@ pub fn build(code:&String) -> Vec<Token> {
             }
         }
     }
-    tokens.push(Token{loc: ps.loc.clone(), val: TokenValue::Eof});
+    if pmaps[pcur]('\0', &mut ps) >= P::_Take as usize {
+        tokens.push(Token{loc: ps.loc_unit.clone(), val: ps.val})
+    }
+    tokens.push(Token{loc: ps.loc.clone(), val: TokenValue::_Eof});
     tokens
 }

@@ -10,7 +10,7 @@
 >
 >
 
-##! Usage
+## ! Usage
 ```shell
 cargo run <path of  .fa file>
 ```
@@ -39,7 +39,7 @@ cargo run hello.fa
 > Other...
 >
 
-##? Target of fa
+## ? Target of fa
 > Easy to use in Practical Engineering
 >
 > Combine functional(High-Abstract) and for(Details)
@@ -51,7 +51,7 @@ cargo run hello.fa
 ```
 # The 'Hello World'
 main: fn() {
-	(println! "hello world!")
+    (println! "hello world!")
 }
 ```
 
@@ -69,6 +69,6 @@ main: fn() {
 }
 ```
 
-##$ Thank
+## ! Thank
 > hope me persist
 >
