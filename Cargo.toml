@@ -1,8 +1,24 @@
-[package]
+[workspace]
+members = ["./crates/*"]
+default-members = ["./crates/cli"]
+
+[workspace.package]
 name = "farvm"
 version = "1.0.0"
+description = "This is a Virtual-Machine(like JVM) for a Language, the lang now unname because in design"
+license = "MIT"
+readme = "README.md"
+keywords = ["programming", "language", "vm"]
+categories = ["command-line-utilities","compilers","development-tools"]
 edition = "2021"
+rust-version = "1.67"
+authors = ["clonne"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[dependencies]
+[workspace.dependencies]
+farvm_utils = { path = "./crates/utils" }
+farvm_tree = { path = "./crates/tree" }
+farvm_compiler = { path = "./crates/compiler" }
+farvm_vm = { path = "./crates/vm" }
+farvm_std = { path = "./crates/std" }

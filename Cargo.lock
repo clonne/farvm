@@ -5,3 +5,40 @@ version = 3
 [[package]]
 name = "farvm"
 version = "1.0.0"
+dependencies = [
+ "farvm_compiler",
+ "farvm_tree",
+ "farvm_utils",
+ "farvm_vm",
+]
+
+[[package]]
+name = "farvm_compiler"
+version = "1.0.0"
+dependencies = [
+ "farvm_tree",
+ "farvm_vm",
+]
+
+[[package]]
+name = "farvm_std"
+version = "1.0.0"
+dependencies = [
+ "farvm_utils",
+ "farvm_vm",
+]
+
+[[package]]
+name = "farvm_tree"
+version = "1.0.0"
+dependencies = [
+ "farvm_utils",
+]
+
+[[package]]
+name = "farvm_utils"
+version = "1.0.0"
+
+[[package]]
+name = "farvm_vm"
+version = "1.0.0"

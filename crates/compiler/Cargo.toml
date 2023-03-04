@@ -1,0 +1,8 @@
+[package]
+name = "farvm_compiler"
+version = "1.0.0"
+edition.workspace = true
+
+[dependencies]
+farvm_tree = { workspace = true }
+farvm_vm = { workspace = true }

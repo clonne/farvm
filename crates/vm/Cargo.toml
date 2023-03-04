@@ -1,0 +1,5 @@
+[package]
+name = "farvm_vm"
+version = "1.0.0"
+
+[dependencies]
