@@ -12,11 +12,11 @@
 
 ## ! Usage
 ```shell
-cargo run <path of  .fa file>
+cargo run -- <source-path>
 ```
 > example
 ```shell
-cargo run hello.fa
+cargo run -- hello.fa
 ```
 
 ## ? What is fa
@@ -50,21 +50,21 @@ cargo run hello.fa
 ## : Examples of fa
 ```
 # The 'Hello World'
-main: fn() {
+(main) = {
     (println! "hello world!")
 }
 ```
 
 ```
 # Multiple Dispatch
-md: method {
-    <>(<Int>a)        = "Int:{a}"
-    <>(<Float>a)      = "Float:{a}"
-    <>(<Bool>a)       = "Bool:{a}"
+for apply (md ...) {
+    (a:Number) = {"Number:{a}"}
+    (a:Float) = {"Float:{a}"}
+    (a:Bool) = {"Bool:{a}"}
 }
 
-main: fn() {
-    let s = [(<Int> 1) (<Float> 1.0) true]
+(main) = {
+    s = [1i32 1.0 true]
     (each (pipe md println!) s)
 }
 ```
